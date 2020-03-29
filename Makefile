@@ -1,4 +1,4 @@
-OBJS:=main.o kubeconfigyaml.o
+OBJS:=main.o kube_config_yaml.o
 CFLAGS:=-g
 LIBS:=-lyaml
 
@@ -9,7 +9,7 @@ main.o:
 	gcc $(CFLAGS) -c main.c
 
 kubeconfigyaml.o:
-	gcc $(CFLAGS) -c kubeconfigyaml.c
+	gcc $(CFLAGS) -c kube_config_yaml.c
 
 .PHONY: clean
 
