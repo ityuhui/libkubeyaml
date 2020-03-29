@@ -51,19 +51,14 @@ typedef struct kubeconfig_t {
     char *apiVersion;
     char *preferences;
     char *kind;
-    kube_context_t *current_context;
+    char *current_context;
     kube_context_t **contexts;
-    int  num_contexts;
+    int  contexts_count;
     kube_cluster_t **clusters;
-    int  num_clusters;
+    int  clusters_count;
     kube_user_t **users;
-    int  num_users;
-    char **extensions;
-    int  num_extensions;
+    int  users_users;
 } kubeconfig_t;
-
-
-extern int free_kube_config(char *basePath, sslConfig_t *sslConfig, list_t *apiKeys);
 
 #ifdef  __cplusplus
 }

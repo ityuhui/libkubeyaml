@@ -1,4 +1,5 @@
 config
+a.txt
 .vs/
 # Prerequisites
 *.d
