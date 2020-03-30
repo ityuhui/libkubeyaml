@@ -23,10 +23,9 @@ extern "C" {
  * OUT:
  * kubeconfig: kubernetes cluster configuration
  */
-extern int kubeyaml_loadkubeconfig(kubeconfig_t *kubeconfig);
+extern int kubeyaml_loadkubeconfig(kubeconfig_t * kubeconfig);
 
 #ifdef  __cplusplus
 }
 #endif
-
-#endif /* _KUBE_CONFIG_YAML_H */
+#endif                          /* _KUBE_CONFIG_YAML_H */
