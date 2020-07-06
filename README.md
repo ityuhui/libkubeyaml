@@ -1,6 +1,6 @@
 # libkubeyaml
-C library to parse yaml for kubernetes project
+C library to parse/update yaml for kubernetes project
 
 ## Introduction
-Parsing kubernetes config yaml. (~/.kube/config)
+Parsing/Updating kubernetes config yaml. (~/.kube/config)
 
