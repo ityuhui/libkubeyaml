@@ -1,7 +1,7 @@
 #ifndef _KUBE_CONFIG_MODEL_H
 #define _KUBE_CONFIG_MODEL_H
 
-#include "../include/keyValuePair.h"
+#include "keyValuePair.h"
 
 #ifdef  __cplusplus
 extern "C" {

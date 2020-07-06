@@ -8,7 +8,7 @@ int main()
 
     kubeconfig_t * kubeconfig = calloc(1,sizeof(kubeconfig_t));
     kubeconfig->fileName = strdup("./config");
-    kubeyaml_loadkubeconfig(kubeconfig);
+    kubeyaml_load_kubeconfig(kubeconfig);
 
     if (kubeconfig->apiVersion) {
         printf("apiVer=%s\n", kubeconfig->apiVersion);

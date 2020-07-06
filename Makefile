@@ -1,26 +1,29 @@
 COMMON_OBJS:=kube_config_yaml.o kube_config_model.o
-CFLAGS:=-g -I./include
+INCLUDE:=-I./
+CFLAGS:=-g 
 LIBS:=-lyaml
 
+main: readkubeconfig updatekubeconfig
+
 readkubeconfig: parse.o $(COMMON_OBJS)
-	gcc $(CFLAGS) -o readkubeconfig $(OBJS) $(LIBS)
+	gcc $(CFLAGS) $(CFLAGS) -o readkubeconfig parse.o $(COMMON_OBJS) $(LIBS)
 
 updatekubeconfig: update.o $(COMMON_OBJS)
-	gcc $(CFLAGS) -o readkubeconfig $(OBJS) $(LIBS)
+	gcc $(CFLAGS) $(CFLAGS) -o updatekubeconfig update.o $(COMMON_OBJS) $(LIBS)
 
 parse.o:
-	gcc $(CFLAGS) -c parse.c
+	gcc $(CFLAGS) $(CFLAGS) -c parse.c
 
 update.o:
-	gcc $(CFLAGS) -c update.c
+	gcc $(CFLAGS) $(CFLAGS) -c update.c
 
 kube_config_yaml.o:
-	gcc $(CFLAGS) -c kube_config_yaml.c
+	gcc $(CFLAGS) $(CFLAGS) -c kube_config_yaml.c
 
 kube_config_model.o:
-	gcc $(CFLAGS) -c kube_config_model.c
+	gcc $(CFLAGS) $(CFLAGS) -c kube_config_model.c
 
 .PHONY: clean
 
 clean:
-	rm $(OBJS) ./readkubeconfig ./updatekubeconfig
+	rm $(OBJS) ./*.o ./readkubeconfig ./updatekubeconfig
