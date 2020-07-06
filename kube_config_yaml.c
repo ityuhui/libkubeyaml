@@ -568,5 +568,39 @@ int kubeyaml_parse_exec_crendential(ExecCredential_t * exec_credential, const ch
 
 int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
 {
+    if (!kubeconfig) {
+        return 0;
+    }
+
+    /* Set a file output. */
+    FILE *output = NULL;
+    if (kubeconfig->fileName) {
+        output = fopen(kubeconfig->fileName, "wb");
+        if (!output) {
+            fprintf(stderr, "%s: Cannot open the file %s.[%s]\n", fname, kubeconfig->fileName, strerror(errno));
+            return -1;
+        }
+    } else {
+        fprintf(stderr, "%s: The kubeconf file name needs be set by kubeconfig->fileName .\n", fname);
+        return -1;
+    }
+
+    yaml_document_t *document = ;
+
+    yaml_emitter_t emitter;
+    yaml_emitter_initialize(&emitter);
+    yaml_emitter_set_canonical(&emitter, 1);
+    yaml_emitter_set_unicode(&emitter, 1);
+    yaml_emitter_set_output_file(&emitter, output);
+    yaml_emitter_open(&emitter);
+
+    yaml_emitter_dump(&emitter, &document);
+    yaml_emitter_flush(&emitter);
+
+    yaml_emitter_close(&emitter);
+    yaml_emitter_delete(&emitter);
+
+    fclose(output);
+
     return 0;
 }

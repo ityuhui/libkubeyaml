@@ -56,5 +56,12 @@ int main()
         }
     }
 
+    if (kubeconfig->fileName) {
+        free(kubeconfig->fileName);
+        kubeconfig->fileName = NULL;
+    }
+    kubeconfig->fileName = strdup("./config_new");
+    kubeyaml_save_kubeconfig(kubeconfig);
+
     return 0;
 }
