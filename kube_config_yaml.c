@@ -566,6 +566,14 @@ int kubeyaml_parse_exec_crendential(ExecCredential_t * exec_credential, const ch
     return -1;
 }
 
+static void fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* kubeconfig)
+{
+    int properties;
+
+    properties = yaml_document_add_mapping(output_document, NULL,
+        YAML_BLOCK_MAPPING_STYLE);
+}
+
 int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
 {
     if (!kubeconfig) {
@@ -585,19 +593,41 @@ int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
         return -1;
     }
 
-    yaml_document_t *document = ;
-
     yaml_emitter_t emitter;
-    yaml_emitter_initialize(&emitter);
+    yaml_document_t output_document;
+
+    /* Initialize the emitter object. */
+    if (!yaml_emitter_initialize(&emitter)) {
+        yaml_parser_delete(&parser);
+        fprintf(stderr, "%s: Could not inialize the emitter object\n", fname);
+        return -1;
+    }
+
+    /* Set the emitter parameters. */
     yaml_emitter_set_canonical(&emitter, 1);
     yaml_emitter_set_unicode(&emitter, 1);
     yaml_emitter_set_output_file(&emitter, output);
-    yaml_emitter_open(&emitter);
 
-    yaml_emitter_dump(&emitter, &document);
+    /* Create and emit the STREAM-START event. */
+    if (!yaml_emitter_open(&emitter)) {
+        goto emitter_error;
+    }
+
+    /* Create a output_document object. */
+    if (!yaml_document_initialize(&output_document, NULL, NULL, NULL, 0, 0)) {
+        goto document_error;
+    }
+
+    fill_yaml_document(output_document, kubeconfig);
+
+    if (!yaml_emitter_dump(&emitter, &output_document)) {
+        goto emitter_error;
+    }
     yaml_emitter_flush(&emitter);
 
-    yaml_emitter_close(&emitter);
+    if (!yaml_emitter_close(&emitter)) {
+        goto emitter_error;
+    }
     yaml_emitter_delete(&emitter);
 
     fclose(output);
