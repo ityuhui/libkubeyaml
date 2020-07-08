@@ -568,10 +568,39 @@ int kubeyaml_parse_exec_crendential(ExecCredential_t * exec_credential, const ch
 
 static void fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* kubeconfig)
 {
-    int properties;
+    int root, key, value, map, seq;
 
-    properties = yaml_document_add_mapping(output_document, NULL,
+    root = yaml_document_add_mapping(output_document, NULL,
         YAML_BLOCK_MAPPING_STYLE);
+
+    if (!root) {
+        goto document_error;
+    }
+
+    /* Add 'apiVersion': '' */
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)KEY_APIVERSION, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        goto document_error;
+    }
+    value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)kubeconfig->apiVersion, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!value) {
+        goto document_error;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, root, key, value)) {
+        goto document_error;
+    }
+
+    /* Add 'clusters': {} */
+
+    /* Add 'contexts': {} */
+
+    /* Add 'current-context': '' */
+
+    /* Add 'kind': 'Config' */
+
+    /* Add 'preferences': {} */
+
+    /* Add 'users': {} */
 }
 
 int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
