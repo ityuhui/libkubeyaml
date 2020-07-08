@@ -15,6 +15,7 @@ mapping :: = MAPPING - START(node node) * MAPPING - END
 #define KEY_APIVERSION "apiVersion"
 #define KEY_KIND "kind"
 #define KEY_CURRENT_CONTEXT "current-context"
+#define KEY_PREFERENCES "preferences"
 #define KEY_CLUSTERS "clusters"
 #define KEY_CLUSTER "cluster"
 #define KEY_CONTEXTS "contexts"
@@ -566,6 +567,22 @@ int kubeyaml_parse_exec_crendential(ExecCredential_t * exec_credential, const ch
     return -1;
 }
 
+static void append_key_stringvalue_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, const char *value_string)
+{
+    int key, value;
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        goto document_error;
+    }
+    value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)value_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!value) {
+        goto document_error;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, value)) {
+        goto document_error;
+    }
+}
+
 static void fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* kubeconfig)
 {
     int root, key, value, map, seq;
@@ -578,29 +595,38 @@ static void fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* k
     }
 
     /* Add 'apiVersion': '' */
-    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)KEY_APIVERSION, -1, YAML_PLAIN_SCALAR_STYLE);
-    if (!key) {
-        goto document_error;
-    }
-    value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)kubeconfig->apiVersion, -1, YAML_PLAIN_SCALAR_STYLE);
-    if (!value) {
-        goto document_error;
-    }
-    if (!yaml_document_append_mapping_pair(output_document, root, key, value)) {
-        goto document_error;
-    }
+    append_key_stringvalue_to_mapping_node(output_document, root, KEY_APIVERSION, kubeconfig->apiVersion);
 
     /* Add 'clusters': {} */
+    append_key_map_to_mapping_node(output_document, root, KEY_CLUSTERS, kubeconfig->clusters, kubeconfig->clusters_count);
 
     /* Add 'contexts': {} */
+    append_key_map_to_mapping_node(output_document, root, KEY_CONTEXTS, kubeconfig->contexts, kubeconfig->contexts_count);
 
     /* Add 'current-context': '' */
+    append_key_stringvalue_to_mapping_node(output_document, root, KEY_CURRENT_CONTEXT, kubeconfig->current_context);
 
     /* Add 'kind': 'Config' */
+    append_key_stringvalue_to_mapping_node(output_document, root, KEY_KIND, kubeconfig->kind);
 
     /* Add 'preferences': {} */
+    append_key_emptymap_to_mapping_node(output_document, root, KEY_PREFERENCES);
 
     /* Add 'users': {} */
+    append_key_map_to_mapping_node(output_document, root, KEY_USERS, kubeconfig->users, kubeconfig->users_count);
+}
+
+static int append_key_map_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, kubeconfig_property_t** properites, int properites_count)
+{
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) goto document_error;
+    map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    if (!map) goto document_error;
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) goto document_error;
+
+    append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAME, kubeconfig->kind);
+
+    return 0;
 }
 
 int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
