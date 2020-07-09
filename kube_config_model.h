@@ -45,6 +45,7 @@ extern "C" {
         union {
             struct {            /* context */
                 char *cluster;
+                char *namespace;
                 char *user;
             };
             struct {            /* cluster */
