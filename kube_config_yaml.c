@@ -32,8 +32,12 @@ mapping :: = MAPPING - START(node node) * MAPPING - END
 #define KEY_USER_EXEC_ARGS "args"
 #define KEY_USER_AUTH_PROVIDER "auth-provider"
 #define KEY_USER_AUTH_PROVIDER_CONFIG "config"
+#define KEY_USER_AUTH_PROVIDER_CONFIG_ACCESS_TOKEN "access-token"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_ID "client-id"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_SECRET "client-secret"
+#define KEY_USER_AUTH_PROVIDER_CONFIG_CMD_PATH "cmd-path"
+#define KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRES_ON "expires-on"
+#define KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRY "expiry"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN "id-token"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY "idp-certificate-authority"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL "idp-issuer-url"
@@ -662,6 +666,19 @@ static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, 
 
 static int append_key_map_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, const kubeconfig_property_t* property)
 {
+    int key, map;
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        goto document_error;
+    }
+    map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    if (!map) {
+        goto document_error;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
+        goto document_error;
+    }
+
     if (KUBECONFIG_PROPERTY_TYPE_CONTEXT == property->type) {
         /* Add 'cluster': '' */
         if (property->cluster) {
@@ -688,6 +705,11 @@ static int append_key_map_to_mapping_node(yaml_document_t* output_document, int 
             append_key_stringvalue_to_mapping_node(output_document, map, KEY_SERVER, property->server);
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER == property->type) {
+        /* Add 'auth-provider': {} */
+        if (property->auth_provider) {
+            append_key_map_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER, property->auth_provider);
+        }
+
         /* Add 'client-certificate-data': '' */
         if (property->client_certificate_data) {
             append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_CERTIFICATE_DATA, property->client_certificate_data);
@@ -703,34 +725,126 @@ static int append_key_map_to_mapping_node(yaml_document_t* output_document, int 
             append_key_map_to_mapping_node(output_document, map, KEY_USER_EXEC, property->exec);
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER_EXEC == properity->type) {
-        /* Add 'command': '' */
-        if (property->command) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command);
-        }
-
         /* Add 'apiVersion': '' */
         if (property->apiVersion) {
             append_key_stringvalue_to_mapping_node(output_document, map, KEY_APIVERSION, property->apiVersion);
         }
 
-        /* Add 'env': [] */
-        if (property->envs && property->envs_count > 0) {
-            append_exec_env_to_mapping_node(output_document,map, KEY_USER_EXEC_ENV, property->envs, property->envs_count);
+        /* Add 'args': [] */
+        if (property->args && property->args_count > 0) {
+            append_key_stringseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ARGS, property->args, property->args_count);
         }
 
+        /* Add 'command': '' */
+        if (property->command) {
+            append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command);
+        }
+
+        /* Add 'env': [] */
+        if (property->envs && property->envs_count > 0) {
+            append_key_kvpseq_to_mapping_node(output_document,map, KEY_USER_EXEC_ENV, property->envs, property->envs_count);
+        }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER_AUTH_PROVIDER == properity->type) {
-        
+        append_auth_provider_config_to_mapping_node(output_document, map, properity);
     }
 }
 
-int append_key_stringseq_to_mapping_node()
+int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document, int parent_node, const kubeconfig_property_t* auth_provider_config)
 {
+    int key, map;
 
+    /* Add 'config': {} */
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)KEY_USER_AUTH_PROVIDER_CONFIG, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        return -1;
+    }
+    map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    if (!map) {
+        return -1;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
+        return -1;
+    }
+
+    /* Add 'access-token': '' */
+    if (auth_provider_config->access_token) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ACCESS_TOKEN, auth_provider_config->access_token);
+    }
+
+    /* Add 'client-id': '' */
+    if (auth_provider_config->client_id) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_ID, auth_provider_config->client_id);
+    }
+
+    /* Add 'client-secret': '' */
+    if (auth_provider_config->client_secret) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_SECRET, auth_provider_config->client_secret);
+    }
+
+    /* Add 'cmd-path': '' */
+    if (auth_provider_config->cmd_path) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CMD_PATH, auth_provider_config->cmd_path);
+    }
+
+    /* Add 'expires-on': '' */
+    if (auth_provider_config->expires_on) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRES_ON, auth_provider_config->expires_on);
+    }
+
+    /* Add 'expiry': '' */
+    if (auth_provider_config->expiry) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRY, auth_provider_config->expiry);
+    }
+
+    /* Add 'id-token': '' */
+    if (auth_provider_config->id_token) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN, auth_provider_config->id_token);
+    }
+
+    /* Add 'idp-certificate-authority': '' */
+    if (auth_provider_config->idp_certificate_authority) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY, auth_provider_config->idp_certificate_authority);
+    }
+
+    /* Add 'idp-issuer-url': '' */
+    if (auth_provider_config->idp_issuer_url) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL, auth_provider_config->idp_issuer_url);
+    }
+
+    /* Add 'refresh-token': '' */
+    if (auth_provider_config->refresh_token) {
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_REFRESH_TOKEN, auth_provider_config->refresh_token);
+    }
+
+    return 0;
 }
 
-int append_key_stringvalue_to_sequence_node(yaml_document_t* output_document, int parent_node, const char* value_string)
+int append_key_stringseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char* key_string, char** strings, int strings_count)
 {
+    int key, seq;
+    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        return -1;
+    }
+    seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
+    if (!seq) {
+        return -1;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, seq)) {
+        return -1;
+    }
 
+    for (int i = 0; i < strings_count; i++) {
+        value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)strings[i], -1, YAML_PLAIN_SCALAR_STYLE);
+        if (!value) {
+            return -1;
+        }
+        if (!yaml_document_append_sequence_item(output_document, seq, value)) {
+            return -1;
+        }
+    }
+
+    return 0;
 }
 
 int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, keyValuePair_t** kvps, int kvps_count)
@@ -738,18 +852,28 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
     int key, seq;
     key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
-        goto document_error;
+        return -1;
     }
     seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
     if (!seq) {
-        goto document_error;
+        return -1;
     }
     if (!yaml_document_append_mapping_pair(output_document, parent_node, key, seq)) {
-        goto document_error;
+        return -1;
     }
 
     for (int i = 0; i < kvps_count; i++) {
-        kvps[i]
+        map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+        if (!map) {
+            return -1;
+        }
+        if (!yaml_document_append_sequence_item(output_document, seq, map)) {
+            return -1;
+        }
+        /* Add 'name': '' */
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_KEY, kvps[i]->key);
+        /* Add 'value': '' */
+        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_VALUE, kvps[i]->value);
     }
 
     return 0;
