@@ -72,7 +72,7 @@ extern "C" {
  * kubeconfig: kubernetes cluster configuration including kubeconfig->fileName: kubernetes cluster configuration file name
  *
  */
-    int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig);
+    int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig);
 
 #ifdef  __cplusplus
 }

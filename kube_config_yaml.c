@@ -624,7 +624,7 @@ static int fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* ku
     }
 
     /* Add 'preferences': {} */
-    if (-1 == append_key_emptymap_to_mapping_node(output_document, root, KEY_PREFERENCES)) {
+    if (-1 == append_key_map_to_mapping_node(output_document, root, KEY_PREFERENCES, NULL)) {
         return -1;
     }
 
@@ -652,7 +652,6 @@ static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, 
         return -1;
     }
 
-    int rc = 0;
     for (int i = 0; i < properites_count; i++) {
         /* Add {}. */
         map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
@@ -699,6 +698,10 @@ static int append_key_map_to_mapping_node(yaml_document_t* output_document, int 
     }
     if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
         return -1;
+    }
+
+    if (!property) {
+        return 0;
     }
 
     if (KUBECONFIG_PROPERTY_TYPE_CONTEXT == property->type) {
@@ -955,7 +958,7 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
     return 0;
 }
 
-int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
+int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig)
 {
     if (!kubeconfig) {
         return 0;
