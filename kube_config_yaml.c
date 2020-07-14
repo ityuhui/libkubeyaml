@@ -638,7 +638,7 @@ static int fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* ku
 
 static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, int parent_node, const char *first_level_key_string, const char *second_level_key_string, kubeconfig_property_t** properites, int properites_count)
 {
-    int map;
+    int map = 0;
 
     int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)first_level_key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
@@ -652,28 +652,35 @@ static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, 
         return -1;
     }
 
+    int rc = 0;
     for (int i = 0; i < properites_count; i++) {
         /* Add {}. */
         map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
         if (!map) {
-            goto document_error;
+            return -1;
         }
         if (!yaml_document_append_sequence_item(output_document, seq, map)) {
-            goto document_error;
+            return -1;
         }
 
         if ( NULL != strstr(second_level_key_string, KEY_CLUSTER) ||
              NULL != strstr(second_level_key_string, KEY_CONTEXT) ) {
             /* Add 'cluster/context': {} */
-            append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i]);
+            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])){
+                return -1;
+            }
         }
 
         /* Add 'name': '' */
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAME, properites[i]->name);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAME, properites[i]->name)) {
+            return -1;
+        }
 
         if (NULL != strstr(second_level_key_string, KEY_USER)) {
             /* Add 'user': {} */
-            append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i]);
+            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])){
+                return -1;
+            }
         }
     }
 
@@ -682,99 +689,126 @@ static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, 
 
 static int append_key_map_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, const kubeconfig_property_t* property)
 {
-    int key, map;
-    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
-        goto document_error;
+        return -1;
     }
-    map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    int map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
     if (!map) {
-        goto document_error;
+        return -1;
     }
     if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
-        goto document_error;
+        return -1;
     }
 
     if (KUBECONFIG_PROPERTY_TYPE_CONTEXT == property->type) {
         /* Add 'cluster': '' */
         if (property->cluster) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLUSTER, property->cluster);
+            if ( -1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLUSTER, property->cluster)){
+                return -1;
+            }
         }
 
         /* Add 'namespace': '' */
         if (property->namespace) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAMESPACE, property->namespace);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAMESPACE, property->namespace)){
+                return -1;
+            }
         }
 
         /* Add 'user': '' */
         if (property->user) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER, property->user);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER, property->user)){
+                return -1;
+            }
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_CLUSTER == property->type) {
         /* Add 'certificate-authority-data': '' */
         if (property->certificate_authority_data) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_CERTIFICATE_AUTHORITY_DATA, property->certificate_authority_data);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CERTIFICATE_AUTHORITY_DATA, property->certificate_authority_data)){
+                return -1;
+            }
         }
 
         /* Add 'server': '' */
         if (property->server) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_SERVER, property->server);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_SERVER, property->server)){
+                return -1;
+            }
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER == property->type) {
         /* Add 'auth-provider': {} */
         if (property->auth_provider) {
-            append_key_map_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER, property->auth_provider);
+            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER, property->auth_provider)){
+                return -1;
+            }
         }
 
         /* Add 'client-certificate-data': '' */
         if (property->client_certificate_data) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_CERTIFICATE_DATA, property->client_certificate_data);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_CERTIFICATE_DATA, property->client_certificate_data)){
+                return -1;
+            }
         }
 
         /* Add 'client-key-data': '' */
         if (property->client_key_data) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_KEY_DATA, property->client_key_data);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_KEY_DATA, property->client_key_data)){
+                return -1;
+            }
         }
 
         /* Add 'exec': {} */
         if (property->exec) {
-            append_key_map_to_mapping_node(output_document, map, KEY_USER_EXEC, property->exec);
+            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_EXEC, property->exec)) {
+                return -1;
+            }
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER_EXEC == properity->type) {
         /* Add 'apiVersion': '' */
         if (property->apiVersion) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_APIVERSION, property->apiVersion);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_APIVERSION, property->apiVersion)) {
+                return -1;
+            }
         }
 
         /* Add 'args': [] */
         if (property->args && property->args_count > 0) {
-            append_key_stringseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ARGS, property->args, property->args_count);
+            if (-1 == append_key_stringseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ARGS, property->args, property->args_count)) {
+                return -1;
+            }
         }
 
         /* Add 'command': '' */
         if (property->command) {
-            append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command);
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command)) {
+                return -1;
+            }
         }
 
         /* Add 'env': [] */
         if (property->envs && property->envs_count > 0) {
-            append_key_kvpseq_to_mapping_node(output_document,map, KEY_USER_EXEC_ENV, property->envs, property->envs_count);
+            if (-1 == append_key_kvpseq_to_mapping_node(output_document,map, KEY_USER_EXEC_ENV, property->envs, property->envs_count)) {
+                return -1;
+            }
         }
     } else if (KUBECONFIG_PROPERTY_TYPE_USER_AUTH_PROVIDER == properity->type) {
-        append_auth_provider_config_to_mapping_node(output_document, map, properity);
+        if (-1 == append_auth_provider_config_to_mapping_node(output_document, map, properity)) {
+            return -1;
+        }
     }
+
+    return 0;
 }
 
 int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document, int parent_node, const kubeconfig_property_t* auth_provider_config)
 {
-    int key, map;
-
     /* Add 'config': {} */
-    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)KEY_USER_AUTH_PROVIDER_CONFIG, -1, YAML_PLAIN_SCALAR_STYLE);
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)KEY_USER_AUTH_PROVIDER_CONFIG, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
         return -1;
     }
-    map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    int map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
     if (!map) {
         return -1;
     }
@@ -782,54 +816,75 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
         return -1;
     }
 
+    int rc = 0;
     /* Add 'access-token': '' */
     if (auth_provider_config->access_token) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ACCESS_TOKEN, auth_provider_config->access_token);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ACCESS_TOKEN, auth_provider_config->access_token)) {
+            return -1;
+        }
     }
 
     /* Add 'client-id': '' */
     if (auth_provider_config->client_id) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_ID, auth_provider_config->client_id);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_ID, auth_provider_config->client_id)) {
+            return -1;
+        }
     }
 
     /* Add 'client-secret': '' */
     if (auth_provider_config->client_secret) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_SECRET, auth_provider_config->client_secret);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CLIENT_SECRET, auth_provider_config->client_secret)) {
+            return -1;
+        }
     }
 
     /* Add 'cmd-path': '' */
     if (auth_provider_config->cmd_path) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CMD_PATH, auth_provider_config->cmd_path);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_CMD_PATH, auth_provider_config->cmd_path)) {
+            return -1;
+        }
     }
 
     /* Add 'expires-on': '' */
     if (auth_provider_config->expires_on) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRES_ON, auth_provider_config->expires_on);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRES_ON, auth_provider_config->expires_on)) {
+            return -1;
+        }
     }
 
     /* Add 'expiry': '' */
     if (auth_provider_config->expiry) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRY, auth_provider_config->expiry);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRY, auth_provider_config->expiry)) {
+            return -1;
+        }
     }
 
     /* Add 'id-token': '' */
     if (auth_provider_config->id_token) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN, auth_provider_config->id_token);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN, auth_provider_config->id_token)) {
+            return -1;
+        }
     }
 
     /* Add 'idp-certificate-authority': '' */
     if (auth_provider_config->idp_certificate_authority) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY, auth_provider_config->idp_certificate_authority);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY, auth_provider_config->idp_certificate_authority)) {
+            return -1;
+        }
     }
 
     /* Add 'idp-issuer-url': '' */
     if (auth_provider_config->idp_issuer_url) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL, auth_provider_config->idp_issuer_url);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL, auth_provider_config->idp_issuer_url)) {
+            return -1;
+        }
     }
 
     /* Add 'refresh-token': '' */
     if (auth_provider_config->refresh_token) {
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_REFRESH_TOKEN, auth_provider_config->refresh_token);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_REFRESH_TOKEN, auth_provider_config->refresh_token)) {
+            return -1;
+        }
     }
 
     return 0;
@@ -837,12 +892,11 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
 
 int append_key_stringseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char* key_string, char** strings, int strings_count)
 {
-    int key, seq;
-    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
         return -1;
     }
-    seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
+    int seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
     if (!seq) {
         return -1;
     }
@@ -865,12 +919,11 @@ int append_key_stringseq_to_mapping_node(yaml_document_t* output_document, int p
 
 int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, keyValuePair_t** kvps, int kvps_count)
 {
-    int key, seq;
-    key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
         return -1;
     }
-    seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
+    int seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
     if (!seq) {
         return -1;
     }
@@ -878,6 +931,7 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
         return -1;
     }
 
+    int rc = 0;
     for (int i = 0; i < kvps_count; i++) {
         map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
         if (!map) {
@@ -886,10 +940,16 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
         if (!yaml_document_append_sequence_item(output_document, seq, map)) {
             return -1;
         }
+
         /* Add 'name': '' */
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_KEY, kvps[i]->key);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_KEY, kvps[i]->key)) {
+            return -1;
+        }
+
         /* Add 'value': '' */
-        append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_VALUE, kvps[i]->value);
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV_VALUE, kvps[i]->value)) {
+            return -1;
+        }
     }
 
     return 0;
@@ -951,9 +1011,47 @@ int kubeyaml_save_kubeconfig(kubeconfig_t* kubeconfig)
     if (!yaml_emitter_close(&emitter)) {
         goto emitter_error;
     }
-    yaml_emitter_delete(&emitter);
 
+    yaml_emitter_delete(&emitter);
+    yaml_document_delete(&output_document);
     fclose(output);
 
     return 0;
+
+emitter_error:
+
+    switch (emitter.error)
+    {
+    case YAML_MEMORY_ERROR:
+        fprintf(stderr, "Memory error: Not enough memory for emitting\n");
+        break;
+
+    case YAML_WRITER_ERROR:
+        fprintf(stderr, "Writer error: %s\n", emitter.problem);
+        break;
+
+    case YAML_EMITTER_ERROR:
+        fprintf(stderr, "Emitter error: %s\n", emitter.problem);
+        break;
+
+    default:
+        /* Couldn't happen. */
+        fprintf(stderr, "Internal error\n");
+        break;
+    }
+
+    yaml_document_delete(&output_document);
+    yaml_emitter_delete(&emitter);
+    fclose(output);
+
+    return -1;
+
+document_error:
+
+    fprintf(stderr, "Memory error: Not enough memory for creating a document\n");
+    yaml_document_delete(&output_document);
+    yaml_emitter_delete(&emitter);
+    fclose(output);
+
+    return -1;
 }
