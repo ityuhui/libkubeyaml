@@ -591,56 +591,9 @@ static int append_key_stringvalue_to_mapping_node(yaml_document_t* output_docume
     return 0;
 }
 
-static int fill_yaml_document(yaml_document_t* output_document, kubeconfig_t* kubeconfig)
+int append_key_stringseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char* key_string, char** strings, int strings_count)
 {
-    int root = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
-    if (!root) {
-        return -1;
-    }
-
-    /* Add 'apiVersion': '' */
-    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_APIVERSION, kubeconfig->apiVersion)) {
-        return -1;
-    }
-
-    /* Add 'clusters': {} */
-    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_CLUSTERS, kubeconfig->clusters, kubeconfig->clusters_count)) {
-        return -1;
-    }
-
-    /* Add 'contexts': {} */
-    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_CONTEXTS, kubeconfig->contexts, kubeconfig->contexts_count)) {
-        return -1;
-    }
-
-    /* Add 'current-context': '' */
-    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_CURRENT_CONTEXT, kubeconfig->current_context)) {
-        return -1;
-    }
-
-    /* Add 'kind': 'Config' */
-    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_KIND, kubeconfig->kind)) {
-        return -1;
-    }
-
-    /* Add 'preferences': {} */
-    if (-1 == append_key_map_to_mapping_node(output_document, root, KEY_PREFERENCES, NULL)) {
-        return -1;
-    }
-
-    /* Add 'users': {} */
-    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_USERS, KEY_USER, kubeconfig->users, kubeconfig->users_count)) {
-        return -1;
-    }
-
-    return 0;
-}
-
-static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, int parent_node, const char *first_level_key_string, const char *second_level_key_string, kubeconfig_property_t** properites, int properites_count)
-{
-    int map = 0;
-
-    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)first_level_key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
     if (!key) {
         return -1;
     }
@@ -652,151 +605,12 @@ static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, 
         return -1;
     }
 
-    for (int i = 0; i < properites_count; i++) {
-        /* Add {}. */
-        map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
-        if (!map) {
+    for (int i = 0; i < strings_count; i++) {
+        int value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)strings[i], -1, YAML_PLAIN_SCALAR_STYLE);
+        if (!value) {
             return -1;
         }
-        if (!yaml_document_append_sequence_item(output_document, seq, map)) {
-            return -1;
-        }
-
-        if ( NULL != strstr(second_level_key_string, KEY_CLUSTER) ||
-             NULL != strstr(second_level_key_string, KEY_CONTEXT) ) {
-            /* Add 'cluster/context': {} */
-            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])){
-                return -1;
-            }
-        }
-
-        /* Add 'name': '' */
-        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAME, properites[i]->name)) {
-            return -1;
-        }
-
-        if (NULL != strstr(second_level_key_string, KEY_USER)) {
-            /* Add 'user': {} */
-            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])){
-                return -1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-static int append_key_map_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, const kubeconfig_property_t* property)
-{
-    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
-    if (!key) {
-        return -1;
-    }
-    int map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
-    if (!map) {
-        return -1;
-    }
-    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
-        return -1;
-    }
-
-    if (!property) {
-        return 0;
-    }
-
-    if (KUBECONFIG_PROPERTY_TYPE_CONTEXT == property->type) {
-        /* Add 'cluster': '' */
-        if (property->cluster) {
-            if ( -1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLUSTER, property->cluster)){
-                return -1;
-            }
-        }
-
-        /* Add 'namespace': '' */
-        if (property->namespace) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAMESPACE, property->namespace)){
-                return -1;
-            }
-        }
-
-        /* Add 'user': '' */
-        if (property->user) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER, property->user)){
-                return -1;
-            }
-        }
-    } else if (KUBECONFIG_PROPERTY_TYPE_CLUSTER == property->type) {
-        /* Add 'certificate-authority-data': '' */
-        if (property->certificate_authority_data) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CERTIFICATE_AUTHORITY_DATA, property->certificate_authority_data)){
-                return -1;
-            }
-        }
-
-        /* Add 'server': '' */
-        if (property->server) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_SERVER, property->server)){
-                return -1;
-            }
-        }
-    } else if (KUBECONFIG_PROPERTY_TYPE_USER == property->type) {
-        /* Add 'auth-provider': {} */
-        if (property->auth_provider) {
-            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER, property->auth_provider)){
-                return -1;
-            }
-        }
-
-        /* Add 'client-certificate-data': '' */
-        if (property->client_certificate_data) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_CERTIFICATE_DATA, property->client_certificate_data)){
-                return -1;
-            }
-        }
-
-        /* Add 'client-key-data': '' */
-        if (property->client_key_data) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_KEY_DATA, property->client_key_data)){
-                return -1;
-            }
-        }
-
-        /* Add 'exec': {} */
-        if (property->exec) {
-            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_EXEC, property->exec)) {
-                return -1;
-            }
-        }
-    } else if (KUBECONFIG_PROPERTY_TYPE_USER_EXEC == properity->type) {
-        /* Add 'apiVersion': '' */
-        if (property->apiVersion) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_APIVERSION, property->apiVersion)) {
-                return -1;
-            }
-        }
-
-        /* Add 'args': [] */
-        if (property->args && property->args_count > 0) {
-            if (-1 == append_key_stringseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ARGS, property->args, property->args_count)) {
-                return -1;
-            }
-        }
-
-        /* Add 'command': '' */
-        if (property->command) {
-            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command)) {
-                return -1;
-            }
-        }
-
-        /* Add 'env': [] */
-        if (property->envs && property->envs_count > 0) {
-            if (-1 == append_key_kvpseq_to_mapping_node(output_document,map, KEY_USER_EXEC_ENV, property->envs, property->envs_count)) {
-                return -1;
-            }
-        }
-    } else if (KUBECONFIG_PROPERTY_TYPE_USER_AUTH_PROVIDER == properity->type) {
-        if (-1 == append_auth_provider_config_to_mapping_node(output_document, map, properity)) {
+        if (!yaml_document_append_sequence_item(output_document, seq, value)) {
             return -1;
         }
     }
@@ -811,7 +625,7 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
     if (!key) {
         return -1;
     }
-    int map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+    int map = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
     if (!map) {
         return -1;
     }
@@ -819,7 +633,6 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
         return -1;
     }
 
-    int rc = 0;
     /* Add 'access-token': '' */
     if (auth_provider_config->access_token) {
         if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_ACCESS_TOKEN, auth_provider_config->access_token)) {
@@ -893,33 +706,6 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
     return 0;
 }
 
-int append_key_stringseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char* key_string, char** strings, int strings_count)
-{
-    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
-    if (!key) {
-        return -1;
-    }
-    int seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
-    if (!seq) {
-        return -1;
-    }
-    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, seq)) {
-        return -1;
-    }
-
-    for (int i = 0; i < strings_count; i++) {
-        value = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)strings[i], -1, YAML_PLAIN_SCALAR_STYLE);
-        if (!value) {
-            return -1;
-        }
-        if (!yaml_document_append_sequence_item(output_document, seq, value)) {
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
 int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, keyValuePair_t** kvps, int kvps_count)
 {
     int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
@@ -934,9 +720,8 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
         return -1;
     }
 
-    int rc = 0;
     for (int i = 0; i < kvps_count; i++) {
-        map = yaml_document_add_mapping(output_document, NULL, YAML_FLOW_MAPPING_STYLE);
+        int map = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
         if (!map) {
             return -1;
         }
@@ -958,8 +743,221 @@ int append_key_kvpseq_to_mapping_node(yaml_document_t* output_document, int pare
     return 0;
 }
 
+static int append_key_map_to_mapping_node(yaml_document_t* output_document, int parent_node, const char *key_string, const kubeconfig_property_t* property)
+{
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t*)key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        return -1;
+    }
+    int map = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
+    if (!map) {
+        return -1;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, map)) {
+        return -1;
+    }
+
+    if (!property) {
+        return 0;
+    }
+
+    if (KUBECONFIG_PROPERTY_TYPE_CONTEXT == property->type) {
+        /* Add 'cluster': '' */
+        if (property->cluster) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLUSTER, property->cluster)) {
+                return -1;
+            }
+        }
+
+        /* Add 'namespace': '' */
+        if (property->namespace) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAMESPACE, property->namespace)) {
+                return -1;
+            }
+        }
+
+        /* Add 'user': '' */
+        if (property->user) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER, property->user)) {
+                return -1;
+            }
+        }
+    } else if (KUBECONFIG_PROPERTY_TYPE_CLUSTER == property->type) {
+        /* Add 'certificate-authority-data': '' */
+        if (property->certificate_authority_data) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CERTIFICATE_AUTHORITY_DATA, property->certificate_authority_data)) {
+                return -1;
+            }
+        }
+
+        /* Add 'server': '' */
+        if (property->server) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_SERVER, property->server)) {
+                return -1;
+            }
+        }
+    } else if (KUBECONFIG_PROPERTY_TYPE_USER == property->type) {
+        /* Add 'auth-provider': {} */
+        if (property->auth_provider) {
+            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER, property->auth_provider)) {
+                return -1;
+            }
+        }
+
+        /* Add 'client-certificate-data': '' */
+        if (property->client_certificate_data) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_CERTIFICATE_DATA, property->client_certificate_data)) {
+                return -1;
+            }
+        }
+
+        /* Add 'client-key-data': '' */
+        if (property->client_key_data) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_CLIENT_KEY_DATA, property->client_key_data)) {
+                return -1;
+            }
+        }
+
+        /* Add 'exec': {} */
+        if (property->exec) {
+            if (-1 == append_key_map_to_mapping_node(output_document, map, KEY_USER_EXEC, property->exec)) {
+                return -1;
+            }
+        }
+    } else if (KUBECONFIG_PROPERTY_TYPE_USER_EXEC == property->type) {
+        /* Add 'apiVersion': '' */
+        if (property->apiVersion) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_APIVERSION, property->apiVersion)) {
+                return -1;
+            }
+        }
+
+        /* Add 'args': [] */
+        if (property->args && property->args_count > 0) {
+            if (-1 == append_key_stringseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ARGS, property->args, property->args_count)) {
+                return -1;
+            }
+        }
+
+        /* Add 'command': '' */
+        if (property->command) {
+            if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_EXEC_COMMAND, property->command)) {
+                return -1;
+            }
+        }
+
+        /* Add 'env': [] */
+        if (property->envs && property->envs_count > 0) {
+            if (-1 == append_key_kvpseq_to_mapping_node(output_document, map, KEY_USER_EXEC_ENV, property->envs, property->envs_count)) {
+                return -1;
+            }
+        }
+    } else if (KUBECONFIG_PROPERTY_TYPE_USER_AUTH_PROVIDER == property->type) {
+        if (-1 == append_auth_provider_config_to_mapping_node(output_document, map, property)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static int append_key_seq_to_top_mapping_node(yaml_document_t* output_document, int parent_node, const char *first_level_key_string, const char *second_level_key_string, kubeconfig_property_t** properites, int properites_count)
+{
+    int key = yaml_document_add_scalar(output_document, NULL, (yaml_char_t *)first_level_key_string, -1, YAML_PLAIN_SCALAR_STYLE);
+    if (!key) {
+        return -1;
+    }
+    int seq = yaml_document_add_sequence(output_document, NULL, YAML_BLOCK_SEQUENCE_STYLE);
+    if (!seq) {
+        return -1;
+    }
+    if (!yaml_document_append_mapping_pair(output_document, parent_node, key, seq)) {
+        return -1;
+    }
+
+    for (int i = 0; i < properites_count; i++) {
+        /* Add {}. */
+        int map = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
+        if (!map) {
+            return -1;
+        }
+        if (!yaml_document_append_sequence_item(output_document, seq, map)) {
+            return -1;
+        }
+
+        if (NULL != strstr(second_level_key_string, KEY_CLUSTER) ||
+            NULL != strstr(second_level_key_string, KEY_CONTEXT)) {
+            /* Add 'cluster/context': {} */
+            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])) {
+                return -1;
+            }
+        }
+
+        /* Add 'name': '' */
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_NAME, properites[i]->name)) {
+            return -1;
+        }
+
+        if (NULL != strstr(second_level_key_string, KEY_USER)) {
+            /* Add 'user': {} */
+            if (-1 == append_key_map_to_mapping_node(output_document, map, second_level_key_string, properites[i])) {
+                return -1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int fill_yaml_document(yaml_document_t* output_document, const kubeconfig_t* kubeconfig)
+{
+    int root = yaml_document_add_mapping(output_document, NULL, YAML_BLOCK_MAPPING_STYLE);
+    if (!root) {
+        return -1;
+    }
+
+    /* Add 'apiVersion': '' */
+    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_APIVERSION, kubeconfig->apiVersion)) {
+        return -1;
+    }
+
+    /* Add 'clusters': {} */
+    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_CLUSTERS, KEY_CLUSTER, kubeconfig->clusters, kubeconfig->clusters_count)) {
+        return -1;
+    }
+
+    /* Add 'contexts': {} */
+    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_CONTEXTS, KEY_CONTEXT, kubeconfig->contexts, kubeconfig->contexts_count)) {
+        return -1;
+    }
+
+    /* Add 'current-context': '' */
+    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_CURRENT_CONTEXT, kubeconfig->current_context)) {
+        return -1;
+    }
+
+    /* Add 'kind': 'Config' */
+    if (-1 == append_key_stringvalue_to_mapping_node(output_document, root, KEY_KIND, kubeconfig->kind)) {
+        return -1;
+    }
+
+    /* Add 'preferences': {} */
+    if (-1 == append_key_map_to_mapping_node(output_document, root, KEY_PREFERENCES, NULL)) {
+        return -1;
+    }
+
+    /* Add 'users': {} */
+    if (-1 == append_key_seq_to_top_mapping_node(output_document, root, KEY_USERS, KEY_USER, kubeconfig->users, kubeconfig->users_count)) {
+        return -1;
+    }
+
+    return 0;
+}
+
 int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig)
 {
+    static char fname[] = "kubeyaml_save_kubeconfig()";
+
     if (!kubeconfig) {
         return 0;
     }
@@ -980,15 +978,17 @@ int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig)
     yaml_emitter_t emitter;
     yaml_document_t output_document;
 
+    memset(&emitter, 0, sizeof(emitter));
+    memset(&output_document, 0, sizeof(output_document));
+
     /* Initialize the emitter object. */
     if (!yaml_emitter_initialize(&emitter)) {
-        yaml_parser_delete(&parser);
         fprintf(stderr, "%s: Could not inialize the emitter object\n", fname);
         return -1;
     }
 
     /* Set the emitter parameters. */
-    yaml_emitter_set_canonical(&emitter, 1);
+    yaml_emitter_set_canonical(&emitter, 0);
     yaml_emitter_set_unicode(&emitter, 1);
     yaml_emitter_set_output_file(&emitter, output);
 
@@ -1002,10 +1002,11 @@ int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig)
         goto document_error;
     }
 
-    if (-1 == fill_yaml_document(output_document, kubeconfig)) {
+    if (-1 == fill_yaml_document(&output_document, kubeconfig)) {
         goto document_error;
     }
 
+    /* Emit the event. */
     if (!yaml_emitter_dump(&emitter, &output_document)) {
         goto emitter_error;
     }
@@ -1026,20 +1027,20 @@ emitter_error:
     switch (emitter.error)
     {
     case YAML_MEMORY_ERROR:
-        fprintf(stderr, "Memory error: Not enough memory for emitting\n");
+        fprintf(stderr, "%s: Memory error: Not enough memory for emitting\n", fname);
         break;
 
     case YAML_WRITER_ERROR:
-        fprintf(stderr, "Writer error: %s\n", emitter.problem);
+        fprintf(stderr, "%s: Writer error: %s\n", fname, emitter.problem);
         break;
 
     case YAML_EMITTER_ERROR:
-        fprintf(stderr, "Emitter error: %s\n", emitter.problem);
+        fprintf(stderr, "%s: Emitter error: %s\n", fname, emitter.problem);
         break;
 
     default:
         /* Couldn't happen. */
-        fprintf(stderr, "Internal error\n");
+        fprintf(stderr, "%s: Internal error\n", fname);
         break;
     }
 
@@ -1051,7 +1052,7 @@ emitter_error:
 
 document_error:
 
-    fprintf(stderr, "Memory error: Not enough memory for creating a document\n");
+    fprintf(stderr, "%s: Memory error: Not enough memory for creating a document\n", fname);
     yaml_document_delete(&output_document);
     yaml_emitter_delete(&emitter);
     fclose(output);
