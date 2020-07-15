@@ -246,6 +246,8 @@ static int parse_kubeconfig_yaml_property_mapping(kubeconfig_property_t * proper
                         fprintf(stderr, "Cannot parse kubeconfig auth provider for user %s.\n", property->name);
                         return -1;
                     }
+                } else {
+                    parse_kubeconfig_yaml_property_mapping(property, document, value);
                 }
             } else {
                 parse_kubeconfig_yaml_property_mapping(property, document, value);
@@ -983,7 +985,7 @@ int kubeyaml_save_kubeconfig(const kubeconfig_t* kubeconfig)
 
     /* Initialize the emitter object. */
     if (!yaml_emitter_initialize(&emitter)) {
-        fprintf(stderr, "%s: Could not inialize the emitter object\n", fname);
+        fprintf(stderr, "%s: Could not initialize the emitter object\n", fname);
         return -1;
     }
 
