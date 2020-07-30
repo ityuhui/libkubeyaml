@@ -150,9 +150,9 @@ void kubeconfig_property_free(kubeconfig_property_t * property)
             free(property->expiry);
             property->expiry = NULL;
         }
-        if (property->idp_certificate_authority) {
-            free(property->idp_certificate_authority);
-            property->idp_certificate_authority = NULL;
+        if (property->idp_certificate_authority_data) {
+            free(property->idp_certificate_authority_data);
+            property->idp_certificate_authority_data = NULL;
         }
         if (property->client_id) {
             free(property->client_id);

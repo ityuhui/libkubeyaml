@@ -39,7 +39,7 @@ mapping :: = MAPPING - START(node node) * MAPPING - END
 #define KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRES_ON "expires-on"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_EXPIRY "expiry"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN "id-token"
-#define KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY "idp-certificate-authority"
+#define KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY_DATA "idp-certificate-authority-data"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL "idp-issuer-url"
 #define KEY_USER_AUTH_PROVIDER_CONFIG_REFRESH_TOKEN "refresh-token"
 #define KEY_CERTIFICATE_AUTHORITY_DATA "certificate-authority-data"
@@ -213,8 +213,8 @@ static int parse_kubeconfig_yaml_property_mapping(kubeconfig_property_t * proper
                     property->client_secret = strdup(value->data.scalar.value);
                 } else if (0 == strcmp(key->data.scalar.value, KEY_USER_AUTH_PROVIDER_CONFIG_ID_TOKEN)) {
                     property->id_token = strdup(value->data.scalar.value);
-                } else if (0 == strcmp(key->data.scalar.value, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY)) {
-                    property->idp_certificate_authority = strdup(value->data.scalar.value);
+                } else if (0 == strcmp(key->data.scalar.value, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY_DATA)) {
+                    property->idp_certificate_authority_data = strdup(value->data.scalar.value);
                 } else if (0 == strcmp(key->data.scalar.value, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_ISSUE_URL)) {
                     property->idp_issuer_url = strdup(value->data.scalar.value);
                 } else if (0 == strcmp(key->data.scalar.value, KEY_USER_AUTH_PROVIDER_CONFIG_REFRESH_TOKEN)) {

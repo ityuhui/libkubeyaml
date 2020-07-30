@@ -71,14 +71,14 @@ extern "C" {
                 int args_count;
             };
             struct {            /* user auth provider */
-                char *id_token;
-                char *cmd_path;
                 char *access_token;
-                char *expires_on;
-                char *expiry;
-                char *idp_certificate_authority;
                 char *client_id;
                 char *client_secret;
+                char *cmd_path;
+                char *expires_on;
+                char *expiry;
+                char *id_token;
+                char *idp_certificate_authority_data;
                 char *idp_issuer_url;
                 char *refresh_token;
             };
