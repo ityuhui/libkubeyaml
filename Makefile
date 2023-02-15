@@ -1,7 +1,7 @@
 COMMON_OBJS:=kube_config_yaml.o kube_config_model.o
 INCLUDE:=-I./
 CFLAGS:=-g 
-LIBS:=-lyaml
+LIBS:=-lyaml -L ./
 
 main: readkubeconfig updatekubeconfig
 
