@@ -1,4 +1,4 @@
-#include <yaml.h>
+#include "yaml.h"
 #include <errno.h>
 #include "kube_config_yaml.h"
 
@@ -685,8 +685,8 @@ int append_auth_provider_config_to_mapping_node(yaml_document_t* output_document
     }
 
     /* Add 'idp-certificate-authority': '' */
-    if (auth_provider_config->idp_certificate_authority) {
-        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY, auth_provider_config->idp_certificate_authority)) {
+    if (auth_provider_config->idp_certificate_authority_data) {
+        if (-1 == append_key_stringvalue_to_mapping_node(output_document, map, KEY_USER_AUTH_PROVIDER_CONFIG_IDP_CERTIFICATE_AUTHORITY_DATA, auth_provider_config->idp_certificate_authority_data)) {
             return -1;
         }
     }
